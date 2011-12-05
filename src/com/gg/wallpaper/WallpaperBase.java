@@ -11,6 +11,7 @@ import org.anddev.andengine.engine.options.resolutionpolicy.FillResolutionPolicy
 import org.anddev.andengine.entity.IEntity;
 import org.anddev.andengine.entity.modifier.RotationByModifier;
 import org.anddev.andengine.entity.scene.Scene;
+import org.anddev.andengine.entity.sprite.BaseSprite;
 import org.anddev.andengine.entity.sprite.Sprite;
 import org.anddev.andengine.extension.ui.livewallpaper.BaseLiveWallpaperService;
 
@@ -252,15 +253,15 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 
 	protected class SlideAnimator implements IUpdateHandler {
 
-		private float xIncrement = 0;
-		Sprite sprite;
-		float startX;
-		float startY;
+		protected float slideIncrement = 0;
+		protected BaseSprite sprite;
+		protected float startX;
+		protected float startY;
 
-		float frameRate;
-		float frameTime;
+		protected float frameRate;
+		protected float frameTime;
 
-		public SlideAnimator(Sprite sprite, float speed) {
+		public SlideAnimator(BaseSprite sprite, float speed) {
 			this.sprite = sprite;
 			this.startX = sprite.getX();
 			this.startY = sprite.getY();
@@ -280,16 +281,21 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 				Log.d(TAG, "onUpdate pSecondsElapsed[" + pSecondsElapsed + "]");
 				return;
 			}
+			
+			slideIncrement += (pSecondsElapsed) / frameTime;
+			animate(pSecondsElapsed);
+		}
 
+		public void animate(float pSecondsElapsed) {
 			float x = startX;// - deltaX;
 
 			// if (!goBack) {
-			xIncrement += (pSecondsElapsed) / frameTime;
+			
 			// } else {
 			// xIncrement -= (pSecondsElapsed) / frameTime;
 			// }
 
-			float finalX = x + xIncrement;
+			float finalX = x + slideIncrement;
 
 			// fine del giro della luna, la rimetto all'inizio
 			// if (!goBack && xIncrement > 0) {
@@ -300,8 +306,8 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 			// goBack = false;
 			// }
 
-			if (xIncrement >= (sprite.getWidth())) {
-				xIncrement = 0;
+			if (slideIncrement >= (sprite.getWidth())) {
+				slideIncrement = 0;
 			}
 
 			// Log.d(TAG, "onUpdate xIncrement[" + xIncrement + "]");
@@ -320,7 +326,7 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 			frameTime = 1 / this.frameRate;
 		}
 
-		public Sprite getSprite() {
+		public BaseSprite getSprite() {
 			return sprite;
 		}
 
