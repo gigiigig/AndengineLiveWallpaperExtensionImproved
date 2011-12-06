@@ -28,9 +28,9 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 	protected static final float MAX_FRAME_TIME = 0.7f;
 
 	private static final float SMOOTH_RATE = 20;
-	private static final float STANDARD_RATE = 10;
+	private static final float STANDARD_RATE = 15;
 
-	private static float FRAME_RATE = 10;
+	private static float FRAME_RATE = STANDARD_RATE;
 	private static float FRAME_TIME = 1000f / FRAME_RATE;
 
 	private static final float SMOOTH_TIME = 1000f / FRAME_RATE;
@@ -43,11 +43,22 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 	protected static boolean restart = false;
 	private static boolean render = true;
 
+	private WallpaperEngine wallpaperEngine;
+
 	@Override
 	public org.anddev.andengine.engine.Engine onLoadEngine() {
-		return new org.anddev.andengine.engine.Engine(new EngineOptions(true,
+		org.anddev.andengine.engine.Engine engine = new org.anddev.andengine.engine.Engine(new EngineOptions(true,
 				this.mScreenOrientation, new FillResolutionPolicy(),
 				new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT)));
+		
+		engine.disableAccelerometerSensor(this);
+		engine.disableLocationSensor(this);
+		engine.disableLocationSensor(this);
+		//engine.disableLocationSensor(this);
+		
+		return engine;
+		
+		
 
 	}
 
@@ -57,7 +68,6 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 		PreferenceManager.setDefaultValues(this, R.xml.wallpaper_settings,
 				false);
 
-		loadScene();
 	}
 
 	protected void loadScene() {
@@ -79,8 +89,14 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 
 	@Override
 	public Scene onLoadScene() {
-
+		loadScene();
 		return scene;
+	}
+
+	@Override
+	protected void onPause() {
+
+		super.onPause();
 
 	}
 
@@ -98,8 +114,13 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 
 	@Override
 	public Engine onCreateEngine() {
-		WallpaperEngine wallpaperEngine = new WallpaperEngine();
+		wallpaperEngine = new WallpaperEngine();
 		wallpaperEngine.setTouchEventsEnabled(true);
+
+		return wallpaperEngine;
+	}
+
+	protected WallpaperEngine getWallpaperEngine() {
 		return wallpaperEngine;
 	}
 
@@ -281,7 +302,7 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 				Log.d(TAG, "onUpdate pSecondsElapsed[" + pSecondsElapsed + "]");
 				return;
 			}
-			
+
 			slideIncrement += (pSecondsElapsed) / frameTime;
 			animate(pSecondsElapsed);
 		}
@@ -290,7 +311,7 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 			float x = startX;// - deltaX;
 
 			// if (!goBack) {
-			
+
 			// } else {
 			// xIncrement -= (pSecondsElapsed) / frameTime;
 			// }
@@ -394,11 +415,8 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 						requestRender();
 						WallpaperBase.this.triggerFrame();
 						try {
-
 							Thread.sleep((long) FRAME_TIME);
-
 						} catch (InterruptedException e) {
-
 						}
 					}
 				}
@@ -435,6 +453,7 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 		@Override
 		public void onResume() {
 			super.onResume();
+			requestRender();
 			// startSmoothThread();
 			startRenderThread();
 			Log.d(TAG, "onResume [started thread]");
@@ -443,7 +462,6 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 		@Override
 		public void onTouchEvent(MotionEvent event) {
 			WallpaperBase.this.onTouchEvent(event);
-
 			Log.d(TAG, "onTouchEvent event get X[" + event.getX() + "]");
 			super.onTouchEvent(event);
 		}
