@@ -47,19 +47,17 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 
 	@Override
 	public org.anddev.andengine.engine.Engine onLoadEngine() {
-		org.anddev.andengine.engine.Engine engine = new org.anddev.andengine.engine.Engine(new EngineOptions(true,
-				this.mScreenOrientation, new FillResolutionPolicy(),
-				new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT)));
-		
+		org.anddev.andengine.engine.Engine engine = new org.anddev.andengine.engine.Engine(
+				new EngineOptions(true, this.mScreenOrientation,
+						new FillResolutionPolicy(), new Camera(0, 0,
+								CAMERA_WIDTH, CAMERA_HEIGHT)));
+
 		engine.disableAccelerometerSensor(this);
 		engine.disableLocationSensor(this);
 		engine.disableLocationSensor(this);
-		//engine.disableLocationSensor(this);
-		
-		return engine;
-		
-		
+		// engine.disableLocationSensor(this);
 
+		return engine;
 	}
 
 	@Override
@@ -71,7 +69,9 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 	}
 
 	protected void loadScene() {
-		scene = new Scene();
+		if (scene == null){
+			scene = new Scene();
+		}
 	}
 
 	public static boolean isReload() {
@@ -95,9 +95,7 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 
 	@Override
 	protected void onPause() {
-
 		super.onPause();
-
 	}
 
 	@Override
@@ -107,6 +105,9 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 		Log.d(TAG, "onResume reload[" + reload + "]");
 
 		if (reload) {
+			scene.detachChildren();
+			loadScene();
+
 			reload = false;
 		}
 
@@ -114,6 +115,7 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 
 	@Override
 	public Engine onCreateEngine() {
+		Log.d(TAG, "onCreateEngine [create]");
 		wallpaperEngine = new WallpaperEngine();
 		wallpaperEngine.setTouchEventsEnabled(true);
 
@@ -424,25 +426,6 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 			new Thread(runnable).start();
 		}
 
-		private void startSmoothThread() {
-			render = true;
-			Runnable runnable = new Runnable() {
-				@Override
-				public void run() {
-					while (render) {
-
-						WallpaperBase.this.triggerFrame();
-						try {
-							Thread.sleep((long) SMOOTH_TIME);
-						} catch (InterruptedException e) {
-
-						}
-					}
-				}
-			};
-			new Thread(runnable).start();
-		}
-
 		@Override
 		public void onPause() {
 			super.onPause();
@@ -453,8 +436,6 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 		@Override
 		public void onResume() {
 			super.onResume();
-			requestRender();
-			// startSmoothThread();
 			startRenderThread();
 			Log.d(TAG, "onResume [started thread]");
 		}
