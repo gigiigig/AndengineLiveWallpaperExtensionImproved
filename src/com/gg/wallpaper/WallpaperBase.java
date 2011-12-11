@@ -107,7 +107,6 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 		if (reload) {
 			scene.detachChildren();
 			loadScene();
-
 			reload = false;
 		}
 
