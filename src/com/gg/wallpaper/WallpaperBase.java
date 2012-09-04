@@ -3,17 +3,18 @@ package com.gg.wallpaper;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.anddev.andengine.engine.camera.Camera;
-import org.anddev.andengine.engine.handler.IUpdateHandler;
-import org.anddev.andengine.engine.options.EngineOptions;
-import org.anddev.andengine.engine.options.EngineOptions.ScreenOrientation;
-import org.anddev.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
-import org.anddev.andengine.entity.IEntity;
-import org.anddev.andengine.entity.modifier.RotationByModifier;
-import org.anddev.andengine.entity.scene.Scene;
-import org.anddev.andengine.entity.sprite.BaseSprite;
-import org.anddev.andengine.entity.sprite.Sprite;
-import org.anddev.andengine.extension.ui.livewallpaper.BaseLiveWallpaperService;
+import org.andengine.engine.camera.Camera;
+import org.andengine.engine.handler.IUpdateHandler;
+import org.andengine.engine.options.EngineOptions;
+import org.andengine.engine.options.ScreenOrientation;
+import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
+import org.andengine.entity.IEntity;
+import org.andengine.entity.modifier.RotationByModifier;
+import org.andengine.entity.scene.Scene;
+import org.andengine.entity.sprite.Sprite;
+import org.andengine.extension.ui.livewallpaper.BaseLiveWallpaperService;
+import org.andengine.opengl.util.GLState;
+import org.andengine.opengl.view.IRendererListener;
 
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -45,14 +46,13 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 
 	private WallpaperEngine wallpaperEngine;
 
-	@Override
-	public org.anddev.andengine.engine.Engine onLoadEngine() {
-		org.anddev.andengine.engine.Engine engine = new org.anddev.andengine.engine.Engine(
+	public org.andengine.engine.Engine onLoadEngine() {
+		org.andengine.engine.Engine engine = new org.andengine.engine.Engine(
 				new EngineOptions(true, this.mScreenOrientation,
 						new FillResolutionPolicy(), new Camera(0, 0,
 								CAMERA_WIDTH, CAMERA_HEIGHT)));
 
-		engine.disableAccelerometerSensor(this);
+		engine.disableAccelerationSensor(this);
 		engine.disableLocationSensor(this);
 		engine.disableLocationSensor(this);
 		// engine.disableLocationSensor(this);
@@ -60,7 +60,7 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 		return engine;
 	}
 
-	@Override
+	
 	public void onLoadResources() {
 
 		PreferenceManager.setDefaultValues(this, R.xml.wallpaper_settings,
@@ -82,12 +82,6 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 		WallpaperBase.reload = reload;
 	}
 
-	@Override
-	public void onUnloadResources() {
-
-	}
-
-	@Override
 	public Scene onLoadScene() {
 		loadScene();
 		return scene;
@@ -258,32 +252,17 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 		FRAME_TIME = 1000 / FRAME_RATE;
 	}
 
-	@Override
-	public void onLoadComplete() {
-
-	}
-
-	@Override
-	public void onPauseGame() {
-
-	}
-
-	@Override
-	public void onResumeGame() {
-
-	}
-
 	protected class SlideAnimator implements IUpdateHandler {
 
 		protected float slideIncrement = 0;
-		protected BaseSprite sprite;
+		protected Sprite sprite;
 		protected float startX;
 		protected float startY;
 
 		protected float frameRate;
 		protected float frameTime;
 
-		public SlideAnimator(BaseSprite sprite, float speed) {
+		public SlideAnimator(Sprite sprite, float speed) {
 			this.sprite = sprite;
 			this.startX = sprite.getX();
 			this.startY = sprite.getY();
@@ -348,7 +327,7 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 			frameTime = 1 / this.frameRate;
 		}
 
-		public BaseSprite getSprite() {
+		public Sprite getSprite() {
 			return sprite;
 		}
 
@@ -403,7 +382,20 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 				.getName();
 
 		public WallpaperEngine() {
-			super();
+			super(new IRendererListener() {
+				
+				@Override
+				public void onSurfaceCreated(GLState pGlState) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				@Override
+				public void onSurfaceChanged(GLState pGlState, int pWidth, int pHeight) {
+					// TODO Auto-generated method stub
+					
+				}
+			});
 			this.setRenderMode(RENDERMODE_WHEN_DIRTY);
 		}
 
@@ -457,6 +449,34 @@ public class WallpaperBase extends BaseLiveWallpaperService {
 			super.onOffsetsChanged(xOffset, yOffset, xOffsetStep, yOffsetStep,
 					xPixelOffset, yPixelOffset);
 		}
+	}
+
+	@Override
+	public EngineOptions onCreateEngineOptions() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void onCreateResources(
+			OnCreateResourcesCallback pOnCreateResourcesCallback)
+			throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onCreateScene(OnCreateSceneCallback pOnCreateSceneCallback)
+			throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onPopulateScene(Scene pScene,
+			OnPopulateSceneCallback pOnPopulateSceneCallback) throws Exception {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
