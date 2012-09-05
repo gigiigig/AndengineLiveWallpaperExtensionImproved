@@ -3,460 +3,480 @@ package com.gg.wallpaper;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.anddev.andengine.engine.camera.Camera;
-import org.anddev.andengine.engine.handler.IUpdateHandler;
-import org.anddev.andengine.engine.options.EngineOptions;
-import org.anddev.andengine.engine.options.EngineOptions.ScreenOrientation;
-import org.anddev.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
-import org.anddev.andengine.entity.IEntity;
-import org.anddev.andengine.entity.modifier.RotationByModifier;
-import org.anddev.andengine.entity.scene.Scene;
-import org.anddev.andengine.entity.sprite.BaseSprite;
-import org.anddev.andengine.entity.sprite.Sprite;
-import org.anddev.andengine.extension.ui.livewallpaper.BaseLiveWallpaperService;
+import org.andengine.engine.camera.Camera;
+import org.andengine.engine.handler.IUpdateHandler;
+import org.andengine.engine.options.EngineOptions;
+import org.andengine.engine.options.ScreenOrientation;
+import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
+import org.andengine.entity.IEntity;
+import org.andengine.entity.modifier.RotationByModifier;
+import org.andengine.entity.scene.Scene;
+import org.andengine.entity.sprite.Sprite;
+import org.andengine.extension.ui.livewallpaper.BaseLiveWallpaperService;
+import org.andengine.opengl.util.GLState;
+import org.andengine.opengl.view.IRendererListener;
 
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.MotionEvent;
 
-public class WallpaperBase extends BaseLiveWallpaperService {
+public abstract class WallpaperBase extends BaseLiveWallpaperService {
+
+    private static String TAG = WallpaperBase.class.getName();
+
+    protected static final int CAMERA_WIDTH = 480;
+    protected static final int CAMERA_HEIGHT = 800;
+    protected static final float MAX_FRAME_TIME = 0.7f;
+
+    private static final float SMOOTH_RATE = 20;
+    private static final float STANDARD_RATE = 15;
+
+    private static float FRAME_RATE = STANDARD_RATE;
+    private static float FRAME_TIME = 1000f / FRAME_RATE;
 
-	private static String TAG = WallpaperBase.class.getName();
+    private static final float SMOOTH_TIME = 1000f / FRAME_RATE;
 
-	protected static final int CAMERA_WIDTH = 480;
-	protected static final int CAMERA_HEIGHT = 800;
-	protected static final float MAX_FRAME_TIME = 0.7f;
+    private static final int SCROLL_SMOOTH = 2;
+
+    private ScreenOrientation mScreenOrientation;
 
-	private static final float SMOOTH_RATE = 20;
-	private static final float STANDARD_RATE = 15;
+    protected static boolean reload = false;
+    protected static boolean restart = false;
+    private static boolean render = true;
 
-	private static float FRAME_RATE = STANDARD_RATE;
-	private static float FRAME_TIME = 1000f / FRAME_RATE;
+    private WallpaperEngine wallpaperEngine;
+
+    // public org.andengine.engine.Engine onLoadEngine() {
+    // org.andengine.engine.Engine engine = new org.andengine.engine.Engine(
+    // new EngineOptions(true, this.mScreenOrientation,
+    // new FillResolutionPolicy(), new Camera(0, 0,
+    // CAMERA_WIDTH, CAMERA_HEIGHT)));
+    //
+    // engine.disableAccelerationSensor(this);
+    // engine.disableLocationSensor(this);
+    // engine.disableLocationSensor(this);
+    // // engine.disableLocationSensor(this);
+    //
+    // return engine;
+    // }
 
-	private static final float SMOOTH_TIME = 1000f / FRAME_RATE;
+    // public void onLoadResources() {
+    //
+    // PreferenceManager.setDefaultValues(this, R.xml.wallpaper_settings,
+    // false);
+    //
+    // }
 
-	private static final int SCROLL_SMOOTH = 2;
+    public abstract void loadScene();
 
-	private ScreenOrientation mScreenOrientation;
+    public static boolean isReload() {
+        return reload;
+    }
 
-	protected static boolean reload = false;
-	protected static boolean restart = false;
-	private static boolean render = true;
+    public static void setReload(boolean reload) {
+        WallpaperBase.reload = reload;
+    }
 
-	private WallpaperEngine wallpaperEngine;
+    // public Scene onLoadScene() {
+    // loadScene();
+    // return scene;
+    // }
 
-	@Override
-	public org.anddev.andengine.engine.Engine onLoadEngine() {
-		org.anddev.andengine.engine.Engine engine = new org.anddev.andengine.engine.Engine(
-				new EngineOptions(true, this.mScreenOrientation,
-						new FillResolutionPolicy(), new Camera(0, 0,
-								CAMERA_WIDTH, CAMERA_HEIGHT)));
+//    @Override
+//    protected void onPause() {
+//        super.onPause();
+//    }
 
-		engine.disableAccelerometerSensor(this);
-		engine.disableLocationSensor(this);
-		engine.disableLocationSensor(this);
-		// engine.disableLocationSensor(this);
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//        restart = true;
+//        Log.d(TAG, "onResume reload[" + reload + "]");
+//
+//        if (reload) {
+//            scene.detachChildren();
+//            getWallpaperEngine()();
+//            reload = false;
+//        }
+//
+//    }
 
-		return engine;
-	}
+    @Override
+    public Engine onCreateEngine() {
+        Log.d(TAG, "onCreateEngine [create]");
+        wallpaperEngine = new WallpaperEngine();
+        wallpaperEngine.setTouchEventsEnabled(true);
 
-	@Override
-	public void onLoadResources() {
+        return wallpaperEngine;
+    }
 
-		PreferenceManager.setDefaultValues(this, R.xml.wallpaper_settings,
-				false);
+    protected WallpaperEngine getWallpaperEngine() {
+        return wallpaperEngine;
+    }
 
-	}
+    protected float deltaX = -CAMERA_WIDTH / 2;
 
-	protected void loadScene() {
-		if (scene == null){
-			scene = new Scene();
-		}
-	}
+    protected Scene scene;
 
-	public static boolean isReload() {
-		return reload;
-	}
+    float lastX;
+    boolean start = true;
+    boolean cangedDirection = false;
 
-	public static void setReload(boolean reload) {
-		WallpaperBase.reload = reload;
-	}
+    protected void onTouchEvent(MotionEvent event) {
 
-	@Override
-	public void onUnloadResources() {
+        int currentDirection;
 
-	}
+        if (start) {
 
-	@Override
-	public Scene onLoadScene() {
-		loadScene();
-		return scene;
-	}
+            lastX = event.getX();
+            start = false;
 
-	@Override
-	protected void onPause() {
-		super.onPause();
-	}
+        } else {
 
-	@Override
-	protected void onResume() {
-		super.onResume();
-		restart = true;
-		Log.d(TAG, "onResume reload[" + reload + "]");
+            if (lastX > event.getX()) {
+                currentDirection = 0;
+            } else {
+                currentDirection = 1;
+            }
 
-		if (reload) {
-			scene.detachChildren();
-			loadScene();
-			reload = false;
-		}
+            if (currentDirection != direction) {
+                cangedDirection = true;
+            }
 
-	}
+            direction = currentDirection;
+        }
 
-	@Override
-	public Engine onCreateEngine() {
-		Log.d(TAG, "onCreateEngine [create]");
-		wallpaperEngine = new WallpaperEngine();
-		wallpaperEngine.setTouchEventsEnabled(true);
+    }
 
-		return wallpaperEngine;
-	}
+    // float currentStart = -1;
+    float lastOffset = 0;
+    // float currentOffset = 0;
 
-	protected WallpaperEngine getWallpaperEngine() {
-		return wallpaperEngine;
-	}
+    List<Float> offsetValues = new LinkedList<Float>();
 
-	protected float deltaX = -CAMERA_WIDTH / 2;
+    boolean changedDir = false;
+    int direction = 0;
 
-	protected Scene scene;
+    protected void onOffsetsChanged(float xOffset, float yOffset,
+            float xOffsetStep, float yOffsetStep, int xPixelOffset,
+            int yPixelOffset) {
 
-	float lastX;
-	boolean start = true;
-	boolean cangedDirection = false;
+        // Log.d(this.getClass().getName(), "xOffset = " + xOffset);
+        // Log.d(this.getClass().getName(), "xOffsetStep = " + xOffsetStep);
+        //
+        // Log.d(this.getClass().getName(), "xPixelOffset = " + xPixelOffset);
+        // Log.d(this.getClass().getName(), "lastOffset = " + lastOffset);
+        //
+        // Log.d(this.getClass().getName(), "lastOffset < xPixelOffset ["
+        // + (lastOffset < xPixelOffset) + "]");
 
-	protected void onTouchEvent(MotionEvent event) {
+        if (xOffsetStep == -1 || xOffsetStep == 0) {
+            deltaX = -CAMERA_WIDTH / 2;
+        } else {
 
-		int currentDirection;
+            if (lastOffset != xPixelOffset) {
 
-		if (start) {
+                setFRAME_RATE(SMOOTH_RATE);
 
-			lastX = event.getX();
-			start = false;
+                // int currentDirection = 0;
+                // if (lastOffset < xPixelOffset) {
+                // currentDirection = 1;
+                // } else {
+                // direction = 0;
+                // }
 
-		} else {
+                float start = lastOffset;
+                float stop = xPixelOffset;
+                synchronized (offsetValues) {
 
-			if (lastX > event.getX()) {
-				currentDirection = 0;
-			} else {
-				currentDirection = 1;
-			}
+                    if (cangedDirection && !offsetValues.isEmpty()) {
 
-			if (currentDirection != direction) {
-				cangedDirection = true;
-			}
+                        Log.d(TAG, "onOffsetsChanged [changed DIRECTION]");
 
-			direction = currentDirection;
-		}
+                        start = deltaX;
+                        offsetValues.clear();
+                        cangedDirection = false;
 
-	}
+                    }
 
-	// float currentStart = -1;
-	float lastOffset = 0;
-	// float currentOffset = 0;
+                    // offsetValues.add((float) xPixelOffset);
 
-	List<Float> offsetValues = new LinkedList<Float>();
+                    for (int i = 0; i < SCROLL_SMOOTH; i++) {
 
-	boolean changedDir = false;
-	int direction = 0;
+                        float smootedValue = ((stop - start) / SCROLL_SMOOTH)
+                                * i;
 
-	protected void onOffsetsChanged(float xOffset, float yOffset,
-			float xOffsetStep, float yOffsetStep, int xPixelOffset,
-			int yPixelOffset) {
+                        offsetValues.add(start + smootedValue);
+                        // Log.d(TAG, "onOffsetsChanged smooted value["
+                        // + (start + smootedValue) + "]");
+                    }
 
-		// Log.d(this.getClass().getName(), "xOffset = " + xOffset);
-		// Log.d(this.getClass().getName(), "xOffsetStep = " + xOffsetStep);
-		//
-		// Log.d(this.getClass().getName(), "xPixelOffset = " + xPixelOffset);
-		// Log.d(this.getClass().getName(), "lastOffset = " + lastOffset);
-		//
-		// Log.d(this.getClass().getName(), "lastOffset < xPixelOffset ["
-		// + (lastOffset < xPixelOffset) + "]");
+                }
 
-		if (xOffsetStep == -1 || xOffsetStep == 0) {
-			deltaX = -CAMERA_WIDTH / 2;
-		} else {
+                lastOffset = xPixelOffset;
 
-			if (lastOffset != xPixelOffset) {
+            }
 
-				setFRAME_RATE(SMOOTH_RATE);
+        }
 
-				// int currentDirection = 0;
-				// if (lastOffset < xPixelOffset) {
-				// currentDirection = 1;
-				// } else {
-				// direction = 0;
-				// }
+    }
 
-				float start = lastOffset;
-				float stop = xPixelOffset;
-				synchronized (offsetValues) {
+    /**
+     * this method is intendeg for scene update indipendet from and engine
+     */
+    protected void triggerFrame() {
 
-					if (cangedDirection && !offsetValues.isEmpty()) {
+        if (!offsetValues.isEmpty()) {
+            synchronized (offsetValues) {
+                deltaX = offsetValues.get(0);
+                offsetValues.remove(0);
 
-						Log.d(TAG, "onOffsetsChanged [changed DIRECTION]");
+                // for (int i = 0; i < remove; i++) {
+                // if (!offsetValues.isEmpty())
+                // offsetValues.remove(0);
+                // }
 
-						start = deltaX;
-						offsetValues.clear();
-						cangedDirection = false;
+            }
+        } else {
+            setFRAME_RATE(STANDARD_RATE);
+        }
+    }
 
-					}
+    public static void setFRAME_RATE(float fRAME_RATE) {
+        FRAME_RATE = fRAME_RATE;
+        FRAME_TIME = 1000 / FRAME_RATE;
+    }
 
-					// offsetValues.add((float) xPixelOffset);
+    protected class SlideAnimator implements IUpdateHandler {
 
-					for (int i = 0; i < SCROLL_SMOOTH; i++) {
+        protected float slideIncrement = 0;
+        protected Sprite sprite;
+        protected float startX;
+        protected float startY;
 
-						float smootedValue = ((stop - start) / SCROLL_SMOOTH)
-								* i;
+        protected float frameRate;
+        protected float frameTime;
 
-						offsetValues.add(start + smootedValue);
-						// Log.d(TAG, "onOffsetsChanged smooted value["
-						// + (start + smootedValue) + "]");
-					}
+        public SlideAnimator(Sprite sprite, float speed) {
+            this.sprite = sprite;
+            this.startX = sprite.getX();
+            this.startY = sprite.getY();
+            setSpeed(speed);
+        }
 
-				}
+        @Override
+        public void reset() {
 
-				lastOffset = xPixelOffset;
+        }
 
-			}
+        @Override
+        public void onUpdate(float pSecondsElapsed) {
 
-		}
+            if (restart || pSecondsElapsed > MAX_FRAME_TIME) {
+                restart = false;
+                Log.d(TAG, "onUpdate pSecondsElapsed[" + pSecondsElapsed + "]");
+                return;
+            }
 
-	}
+            slideIncrement += (pSecondsElapsed) / frameTime;
+            animate(pSecondsElapsed);
+        }
 
-	/**
-	 * this method is intendeg for scene update indipendet from and engine
-	 */
-	protected void triggerFrame() {
+        public void animate(float pSecondsElapsed) {
+            float x = startX;// - deltaX;
 
-		if (!offsetValues.isEmpty()) {
-			synchronized (offsetValues) {
-				deltaX = offsetValues.get(0);
-				offsetValues.remove(0);
+            // if (!goBack) {
 
-				// for (int i = 0; i < remove; i++) {
-				// if (!offsetValues.isEmpty())
-				// offsetValues.remove(0);
-				// }
+            // } else {
+            // xIncrement -= (pSecondsElapsed) / frameTime;
+            // }
 
-			}
-		} else {
-			setFRAME_RATE(STANDARD_RATE);
-		}
-	}
+            float finalX = x + slideIncrement;
 
-	public static void setFRAME_RATE(float fRAME_RATE) {
-		FRAME_RATE = fRAME_RATE;
-		FRAME_TIME = 1000 / FRAME_RATE;
-	}
+            // fine del giro della luna, la rimetto all'inizio
+            // if (!goBack && xIncrement > 0) {
+            // goBack = true;
+            // }
+            // if (goBack && xIncrement <= -(sprite.getWidth() - CAMERA_WIDTH))
+            // {
+            // goBack = false;
+            // }
 
-	@Override
-	public void onLoadComplete() {
+            if (slideIncrement >= (sprite.getWidth())) {
+                slideIncrement = 0;
+            }
 
-	}
+            // Log.d(TAG, "onUpdate xIncrement[" + xIncrement + "]");
 
-	@Override
-	public void onPauseGame() {
+            float finalY = startY;
 
-	}
+            // Log.d(TAG, "onUpdate final x[" + finalX + "]");
+            // Log.d(TAG, "onUpdate final y[" + finalY + "]");
 
-	@Override
-	public void onResumeGame() {
+            sprite.setPosition(finalX + (deltaX / 2), finalY);
+            // }
+        }
 
-	}
+        public void setSpeed(float frameRate) {
+            this.frameRate = frameRate;
+            frameTime = 1 / this.frameRate;
+        }
 
-	protected class SlideAnimator implements IUpdateHandler {
+        public Sprite getSprite() {
+            return sprite;
+        }
 
-		protected float slideIncrement = 0;
-		protected BaseSprite sprite;
-		protected float startX;
-		protected float startY;
+        public void setSprite(Sprite sprite) {
+            this.sprite = sprite;
+        }
 
-		protected float frameRate;
-		protected float frameTime;
+        public float getStartX() {
+            return startX;
+        }
 
-		public SlideAnimator(BaseSprite sprite, float speed) {
-			this.sprite = sprite;
-			this.startX = sprite.getX();
-			this.startY = sprite.getY();
-			setSpeed(speed);
-		}
+        public void setStartX(float startX) {
+            this.startX = startX;
+        }
 
-		@Override
-		public void reset() {
+        public float getStartY() {
+            return startY;
+        }
 
-		}
+        public void setStartY(float startY) {
+            this.startY = startY;
+        }
 
-		@Override
-		public void onUpdate(float pSecondsElapsed) {
+        public float getFrameTime() {
+            return frameTime;
+        }
 
-			if (restart || pSecondsElapsed > MAX_FRAME_TIME) {
-				restart = false;
-				Log.d(TAG, "onUpdate pSecondsElapsed[" + pSecondsElapsed + "]");
-				return;
-			}
+    }
 
-			slideIncrement += (pSecondsElapsed) / frameTime;
-			animate(pSecondsElapsed);
-		}
+    protected class MyRotationByModifier extends RotationByModifier {
 
-		public void animate(float pSecondsElapsed) {
-			float x = startX;// - deltaX;
+        public MyRotationByModifier(float pDuration, float pRotation) {
+            super(pDuration, pRotation);
+        }
 
-			// if (!goBack) {
+        @Override
+        protected void onChangeValue(float pSecondsElapsed, IEntity pEntity,
+                float pRotation) {
+            if (restart || pSecondsElapsed > MAX_FRAME_TIME) {
+                restart = false;
+                Log.d(TAG, "onUpdate pSecondsElapsed[" + pSecondsElapsed + "]");
+                return;
+            }
+            super.onChangeValue(pSecondsElapsed, pEntity, pRotation);
+        }
 
-			// } else {
-			// xIncrement -= (pSecondsElapsed) / frameTime;
-			// }
+    }
 
-			float finalX = x + slideIncrement;
+    protected class WallpaperEngine extends BaseWallpaperGLEngine {
 
-			// fine del giro della luna, la rimetto all'inizio
-			// if (!goBack && xIncrement > 0) {
-			// goBack = true;
-			// }
-			// if (goBack && xIncrement <= -(sprite.getWidth() - CAMERA_WIDTH))
-			// {
-			// goBack = false;
-			// }
+        private final String TAG = WallpaperBase.WallpaperEngine.class
+                .getName();
 
-			if (slideIncrement >= (sprite.getWidth())) {
-				slideIncrement = 0;
-			}
+        public WallpaperEngine() {
+            super(new IRendererListener() {
 
-			// Log.d(TAG, "onUpdate xIncrement[" + xIncrement + "]");
+                @Override
+                public void onSurfaceCreated(GLState pGlState) {
+                    // TODO Auto-generated method stub
 
-			float finalY = startY;
+                }
 
-			// Log.d(TAG, "onUpdate final x[" + finalX + "]");
-			// Log.d(TAG, "onUpdate final y[" + finalY + "]");
+                @Override
+                public void onSurfaceChanged(GLState pGlState, int pWidth,
+                        int pHeight) {
+                    // TODO Auto-generated method stub
 
-			sprite.setPosition(finalX + (deltaX / 2), finalY);
-			// }
-		}
+                }
+            });
+            this.setRenderMode(RENDERMODE_WHEN_DIRTY);
+        }
 
-		public void setSpeed(float frameRate) {
-			this.frameRate = frameRate;
-			frameTime = 1 / this.frameRate;
-		}
+        private void startRenderThread() {
+            render = true;
+            Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+                    while (render) {
+                        requestRender();
+                        WallpaperBase.this.triggerFrame();
+                        try {
+                            Thread.sleep((long) FRAME_TIME);
+                        } catch (InterruptedException e) {
+                        }
+                    }
+                }
+            };
+            new Thread(runnable).start();
+        }
 
-		public BaseSprite getSprite() {
-			return sprite;
-		}
+        @Override
+        public void onPause() {
+            super.onPause();
+            render = false;
+            Log.d(TAG, "onPause [stopped thread]");
+        }
 
-		public void setSprite(Sprite sprite) {
-			this.sprite = sprite;
-		}
+        @Override
+        public void onResume() {
+            super.onResume();
+            startRenderThread();
+            Log.d(TAG, "onResume [started thread]");
+        }
 
-		public float getStartX() {
-			return startX;
-		}
+        @Override
+        public void onTouchEvent(MotionEvent event) {
+            WallpaperBase.this.onTouchEvent(event);
+            Log.d(TAG, "onTouchEvent event get X[" + event.getX() + "]");
+            super.onTouchEvent(event);
+        }
 
-		public void setStartX(float startX) {
-			this.startX = startX;
-		}
+        @Override
+        public void onOffsetsChanged(float xOffset, float yOffset,
+                float xOffsetStep, float yOffsetStep, int xPixelOffset,
+                int yPixelOffset) {
 
-		public float getStartY() {
-			return startY;
-		}
+            WallpaperBase.this.onOffsetsChanged(xOffset, yOffset, xOffsetStep,
+                    yOffsetStep, xPixelOffset, yPixelOffset);
 
-		public void setStartY(float startY) {
-			this.startY = startY;
-		}
+            super.onOffsetsChanged(xOffset, yOffset, xOffsetStep, yOffsetStep,
+                    xPixelOffset, yPixelOffset);
+        }
+    }
 
-		public float getFrameTime() {
-			return frameTime;
-		}
+    @Override
+    public EngineOptions onCreateEngineOptions() {
+        return new EngineOptions(true, this.mScreenOrientation,
+                new FillResolutionPolicy(), new Camera(0, 0, CAMERA_WIDTH,
+                        CAMERA_HEIGHT));
+    }
 
-	}
+    @Override
+    public void onCreateResources(
+            OnCreateResourcesCallback pOnCreateResourcesCallback)
+            throws Exception {
 
-	protected class MyRotationByModifier extends RotationByModifier {
+        PreferenceManager.setDefaultValues(this, R.xml.wallpaper_settings,
+                false);
 
-		public MyRotationByModifier(float pDuration, float pRotation) {
-			super(pDuration, pRotation);
-		}
+    }
 
-		@Override
-		protected void onChangeValue(float pSecondsElapsed, IEntity pEntity,
-				float pRotation) {
-			if (restart || pSecondsElapsed > MAX_FRAME_TIME) {
-				restart = false;
-				Log.d(TAG, "onUpdate pSecondsElapsed[" + pSecondsElapsed + "]");
-				return;
-			}
-			super.onChangeValue(pSecondsElapsed, pEntity, pRotation);
-		}
+    @Override
+    public void onCreateScene(OnCreateSceneCallback pOnCreateSceneCallback)
+            throws Exception {
 
-	}
+    }
 
-	protected class WallpaperEngine extends BaseWallpaperGLEngine {
+    @Override
+    public void onPopulateScene(Scene pScene,
+            OnPopulateSceneCallback pOnPopulateSceneCallback) throws Exception {
+        
+        scene = scene;
+        loadScene();
 
-		private final String TAG = WallpaperBase.WallpaperEngine.class
-				.getName();
-
-		public WallpaperEngine() {
-			super();
-			this.setRenderMode(RENDERMODE_WHEN_DIRTY);
-		}
-
-		private void startRenderThread() {
-			render = true;
-			Runnable runnable = new Runnable() {
-				@Override
-				public void run() {
-					while (render) {
-						requestRender();
-						WallpaperBase.this.triggerFrame();
-						try {
-							Thread.sleep((long) FRAME_TIME);
-						} catch (InterruptedException e) {
-						}
-					}
-				}
-			};
-			new Thread(runnable).start();
-		}
-
-		@Override
-		public void onPause() {
-			super.onPause();
-			render = false;
-			Log.d(TAG, "onPause [stopped thread]");
-		}
-
-		@Override
-		public void onResume() {
-			super.onResume();
-			startRenderThread();
-			Log.d(TAG, "onResume [started thread]");
-		}
-
-		@Override
-		public void onTouchEvent(MotionEvent event) {
-			WallpaperBase.this.onTouchEvent(event);
-			Log.d(TAG, "onTouchEvent event get X[" + event.getX() + "]");
-			super.onTouchEvent(event);
-		}
-
-		@Override
-		public void onOffsetsChanged(float xOffset, float yOffset,
-				float xOffsetStep, float yOffsetStep, int xPixelOffset,
-				int yPixelOffset) {
-
-			WallpaperBase.this.onOffsetsChanged(xOffset, yOffset, xOffsetStep,
-					yOffsetStep, xPixelOffset, yPixelOffset);
-
-			super.onOffsetsChanged(xOffset, yOffset, xOffsetStep, yOffsetStep,
-					xPixelOffset, yPixelOffset);
-		}
-	}
+    }
 
 }
