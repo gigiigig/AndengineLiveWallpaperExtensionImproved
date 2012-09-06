@@ -7,13 +7,12 @@ import org.andengine.engine.camera.Camera;
 import org.andengine.engine.handler.IUpdateHandler;
 import org.andengine.engine.options.EngineOptions;
 import org.andengine.engine.options.ScreenOrientation;
-import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
+import org.andengine.engine.options.resolutionpolicy.RatioResolutionPolicy;
 import org.andengine.entity.IEntity;
 import org.andengine.entity.modifier.RotationByModifier;
 import org.andengine.entity.scene.Scene;
 import org.andengine.entity.sprite.Sprite;
 import org.andengine.extension.ui.livewallpaper.BaseLiveWallpaperService;
-import org.andengine.opengl.util.GLState;
 import org.andengine.opengl.view.IRendererListener;
 
 import android.preference.PreferenceManager;
@@ -38,13 +37,41 @@ public abstract class WallpaperBase extends BaseLiveWallpaperService {
 
     private static final int SCROLL_SMOOTH = 2;
 
-    private ScreenOrientation mScreenOrientation;
-
     protected static boolean reload = false;
     protected static boolean restart = false;
     private static boolean render = true;
 
-    private WallpaperEngine wallpaperEngine;
+    @Override
+    public void onCreate() {
+
+        super.onCreate();
+        PreferenceManager.setDefaultValues(this, R.xml.wallpaper_settings,
+                false);
+    }
+
+    @Override
+    public EngineOptions onCreateEngineOptions() {
+        final Camera camera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
+
+        return new EngineOptions(true, ScreenOrientation.LANDSCAPE_FIXED,
+                new RatioResolutionPolicy(CAMERA_WIDTH, CAMERA_HEIGHT), camera);
+    }
+
+    @Override
+    public void onCreateScene(OnCreateSceneCallback pOnCreateSceneCallback)
+            throws Exception {
+        this.scene = new Scene();
+        this.loadScene();
+        pOnCreateSceneCallback.onCreateSceneFinished(scene);
+    }
+
+    @Override
+    public void onPopulateScene(Scene pScene,
+            OnPopulateSceneCallback pOnPopulateSceneCallback) throws Exception {
+
+        pOnPopulateSceneCallback.onPopulateSceneFinished();
+
+    }
 
     // public org.andengine.engine.Engine onLoadEngine() {
     // org.andengine.engine.Engine engine = new org.andengine.engine.Engine(
@@ -82,37 +109,37 @@ public abstract class WallpaperBase extends BaseLiveWallpaperService {
     // return scene;
     // }
 
-//    @Override
-//    protected void onPause() {
-//        super.onPause();
-//    }
+    // @Override
+    // protected void onPause() {
+    // super.onPause();
+    // }
 
-//    @Override
-//    protected void onResume() {
-//        super.onResume();
-//        restart = true;
-//        Log.d(TAG, "onResume reload[" + reload + "]");
-//
-//        if (reload) {
-//            scene.detachChildren();
-//            getWallpaperEngine()();
-//            reload = false;
-//        }
-//
-//    }
+    // @Override
+    // protected void onResume() {
+    // super.onResume();
+    // restart = true;
+    // Log.d(TAG, "onResume reload[" + reload + "]");
+    //
+    // if (reload) {
+    // scene.detachChildren();
+    // getWallpaperEngine()();
+    // reload = false;
+    // }
+    //
+    // }
+    //
+    // @Override
+    // public Engine onCreateEngine() {
+    // Log.d(TAG, "onCreateEngine [create]");
+    // wallpaperEngine = new WallpaperEngine();
+    // wallpaperEngine.setTouchEventsEnabled(true);
+    // s
+    // return wallpaperEngine;
+    // }
 
-    @Override
-    public Engine onCreateEngine() {
-        Log.d(TAG, "onCreateEngine [create]");
-        wallpaperEngine = new WallpaperEngine();
-        wallpaperEngine.setTouchEventsEnabled(true);
-
-        return wallpaperEngine;
-    }
-
-    protected WallpaperEngine getWallpaperEngine() {
-        return wallpaperEngine;
-    }
+    // protected WallpaperEngine getWallpaperEngine() {
+    // return wallpaperEngine;
+    // }
 
     protected float deltaX = -CAMERA_WIDTH / 2;
 
@@ -373,27 +400,13 @@ public abstract class WallpaperBase extends BaseLiveWallpaperService {
 
     protected class WallpaperEngine extends BaseWallpaperGLEngine {
 
-        private final String TAG = WallpaperBase.WallpaperEngine.class
-                .getName();
-
-        public WallpaperEngine() {
-            super(new IRendererListener() {
-
-                @Override
-                public void onSurfaceCreated(GLState pGlState) {
-                    // TODO Auto-generated method stub
-
-                }
-
-                @Override
-                public void onSurfaceChanged(GLState pGlState, int pWidth,
-                        int pHeight) {
-                    // TODO Auto-generated method stub
-
-                }
-            });
+        public WallpaperEngine(IRendererListener pRendererListener) {
+            super(pRendererListener);
             this.setRenderMode(RENDERMODE_WHEN_DIRTY);
         }
+
+        private final String TAG = WallpaperBase.WallpaperEngine.class
+                .getName();
 
         private void startRenderThread() {
             render = true;
@@ -445,38 +458,6 @@ public abstract class WallpaperBase extends BaseLiveWallpaperService {
             super.onOffsetsChanged(xOffset, yOffset, xOffsetStep, yOffsetStep,
                     xPixelOffset, yPixelOffset);
         }
-    }
-
-    @Override
-    public EngineOptions onCreateEngineOptions() {
-        return new EngineOptions(true, this.mScreenOrientation,
-                new FillResolutionPolicy(), new Camera(0, 0, CAMERA_WIDTH,
-                        CAMERA_HEIGHT));
-    }
-
-    @Override
-    public void onCreateResources(
-            OnCreateResourcesCallback pOnCreateResourcesCallback)
-            throws Exception {
-
-        PreferenceManager.setDefaultValues(this, R.xml.wallpaper_settings,
-                false);
-
-    }
-
-    @Override
-    public void onCreateScene(OnCreateSceneCallback pOnCreateSceneCallback)
-            throws Exception {
-
-    }
-
-    @Override
-    public void onPopulateScene(Scene pScene,
-            OnPopulateSceneCallback pOnPopulateSceneCallback) throws Exception {
-        
-        scene = scene;
-        loadScene();
-
     }
 
 }
