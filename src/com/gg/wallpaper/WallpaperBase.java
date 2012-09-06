@@ -114,19 +114,19 @@ public abstract class WallpaperBase extends BaseLiveWallpaperService {
     // super.onPause();
     // }
 
-    // @Override
-    // protected void onResume() {
-    // super.onResume();
-    // restart = true;
-    // Log.d(TAG, "onResume reload[" + reload + "]");
-    //
-    // if (reload) {
-    // scene.detachChildren();
-    // getWallpaperEngine()();
-    // reload = false;
-    // }
-    //
-    // }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        restart = true;
+        Log.d(TAG, "onResume reload[" + reload + "]");
+
+        if (reload) {
+            scene.detachChildren();
+            reload = false;
+        }
+
+    }
+
     //
     // @Override
     // public Engine onCreateEngine() {
