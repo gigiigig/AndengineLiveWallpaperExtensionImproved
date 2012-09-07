@@ -50,6 +50,11 @@ public abstract class WallpaperBase extends BaseLiveWallpaperService {
     }
 
     @Override
+    public Engine onCreateEngine() {
+        return new WallpaperEngine(this);
+    }
+
+    @Override
     public EngineOptions onCreateEngineOptions() {
         final Camera camera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
 
@@ -244,6 +249,9 @@ public abstract class WallpaperBase extends BaseLiveWallpaperService {
 
             }
 
+            Log.d(TAG, "onOffsetsChanged deltaX[" + deltaX + "]");
+            Log.d(TAG, "onOffsetsChanged lastOffset[" + lastOffset + "]");
+
         }
 
     }
@@ -402,7 +410,8 @@ public abstract class WallpaperBase extends BaseLiveWallpaperService {
 
         public WallpaperEngine(IRendererListener pRendererListener) {
             super(pRendererListener);
-            this.setRenderMode(RENDERMODE_WHEN_DIRTY);
+            this.setRenderMode(GLEngine.RENDERMODE_WHEN_DIRTY);
+            startRenderThread();
         }
 
         private final String TAG = WallpaperBase.WallpaperEngine.class
@@ -447,17 +456,19 @@ public abstract class WallpaperBase extends BaseLiveWallpaperService {
             super.onTouchEvent(event);
         }
 
-        @Override
-        public void onOffsetsChanged(float xOffset, float yOffset,
-                float xOffsetStep, float yOffsetStep, int xPixelOffset,
-                int yPixelOffset) {
-
-            WallpaperBase.this.onOffsetsChanged(xOffset, yOffset, xOffsetStep,
-                    yOffsetStep, xPixelOffset, yPixelOffset);
-
-            super.onOffsetsChanged(xOffset, yOffset, xOffsetStep, yOffsetStep,
-                    xPixelOffset, yPixelOffset);
-        }
+        // @Override
+        // public void onOffsetsChanged(float xOffset, float yOffset,
+        // float xOffsetStep, float yOffsetStep, int xPixelOffset,
+        // int yPixelOffset) {
+        //
+        // WallpaperBase.this.onOffsetsChanged(xOffset, yOffset, xOffsetStep,
+        // yOffsetStep, xPixelOffset, yPixelOffset);
+        //
+        // Log.d(TAG, "onOffsetsChanged [" + deltaX +"]");
+        //
+        // super.onOffsetsChanged(xOffset, yOffset, xOffsetStep, yOffsetStep,
+        // xPixelOffset, yPixelOffset);
+        // }
     }
 
 }
