@@ -435,18 +435,40 @@ public abstract class WallpaperBase extends BaseLiveWallpaperService {
             new Thread(runnable).start();
         }
 
-        @Override
-        public void onPause() {
-            super.onPause();
-            render = false;
-            Log.d(TAG, "onPause [stopped thread]");
-        }
+        // @Override
+        // public void onPause() {
+        // super.onPause();
+        // render = false;
+        // Log.d(TAG, "onPause [stopped thread]");
+        // }
+        //
+        // @Override
+        // public void onResume() {
+        // super.onResume();
+        // startRenderThread();
+        // Log.d(TAG, "onResume [started thread]");
+        // }
 
         @Override
-        public void onResume() {
-            super.onResume();
-            startRenderThread();
-            Log.d(TAG, "onResume [started thread]");
+        public void onVisibilityChanged(boolean pVisibility) {
+            // super.onVisibilityChanged(pVisibility);
+
+            Log.d(TAG, "onVisibilityChanged visibility[" + pVisibility + "]");
+
+            if (!pVisibility)
+                render = false;
+            else {
+
+                if (reload) {
+                    WallpaperBase.this.getEngine().onReloadResources();
+                    scene.detachChildren();
+                    loadScene();
+                    reload = false;
+                }
+
+                startRenderThread();
+            }
+
         }
 
         @Override
