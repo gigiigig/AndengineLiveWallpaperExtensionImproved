@@ -455,23 +455,26 @@ public abstract class WallpaperBase extends BaseLiveWallpaperService {
 
 			Log.d(TAG, "onVisibilityChanged visibility[" + pVisibility + "]");
 			Log.d(TAG, "onVisibilityChanged isPreview[" + isPreview() + "]");
-			Log.d(TAG, "onVisibilityChanged reload[" + reload +"]");
-
+			Log.d(TAG, "onVisibilityChanged reload[" + reload + "]");
 
 			if (!pVisibility)
 				render = false;
 			else {
 
-				if (reload || isPreview()) {
+				if (reload) {
+
 					WallpaperBase.this.getEngine().onReloadResources();
+
 					scene.detachChildren();
 					loadScene();
-					
-					Log.d(TAG, "onVisibilityChanged isPreview[" + isPreview() + "]");
-					if (!isPreview())
-						reload = false;
-					else 
+
+					Log.d(TAG, "onVisibilityChanged isPreview[" + isPreview()
+							+ "]");
+
+					if (isPreview())
 						reload = true;
+					else
+						reload = false;
 				}
 
 				// force to reload resorces if is in preview mode
